@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Lista de presentes de casamento Aline & Raul. Escolha um presente ou contribua com um valor livre via PIX.">
+  <title>Aline & Raul — Lista de Presentes</title>
+  
+  <!-- 🆕 Favicon -->
+  <link rel="icon" type="image/svg+xml" href="img/favicon.png">
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Fontes -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  
+  <!-- 🆕 Biblioteca QR Code (carregada com defer para não bloquear renderização) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-ornament"></div>
+    <p class="hero-eyebrow">Lista de Presentes</p>
+    <h1 class="hero-names">Aline Cristina <em>&</em> Raul Pietro <span class="hero-amp"></h1>
+    
+    <!-- 🆕 Data e Cidade com destaque visual -->
+    <p class="hero-date">
+      <span class="highlight-date">20 · Maio · 2027</span>
+      <span class="highlight-sep">·</span>
+      <span class="highlight-city">Patrocínio-MG</span>
+    </p>
+    
+    <div class="hero-scroll">
+      <span>Rolar</span>
+      <div class="scroll-line"></div>
+    </div>
+  </header>
+
+  <section class="section-intro">
+    <p class="section-label">Com amor & gratidão</p>
+    <h2 class="section-title">Nossa Lista de <em>Presentes</em></h2>
+    <p class="section-desc">Cada presente nesta lista foi escolhido com carinho para começar nossa história juntos.<br>Sua presença já é o maior presente — mas se desejar nos presentear, ficaremos eternamente gratos.</p>
+  </section>
+
+  <!-- 🆕 Container de filtros + botão Presente Livre -->
+  <div class="filters" id="filters">
+    <button id="btn-free-gift" class="filter-btn btn-free-gift">🎁 Presente Livre</button>
+  </div>
+
+  <section class="gifts-section">
+    <div id="gifts-container" class="gifts-loading">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+  </section>
+
+  <!-- 🆕 Footer com créditos da empresa -->
+  <footer class="footer">
+    <p class="footer-names">Aline Cristina & Raul Pietro Baptista</p>
+    <p class="footer-thanks">Obrigado por fazer parte da nossa história ✦</p>
+    <div class="modal-ornament" style="margin: 2rem auto;"></div>
+    <p class="footer-copyright">© <span id="current-year"></span> B3 TECH - Soluções em Tecnologia e Segurança da Informação. Todos os direitos reservados.</p>
+  </footer>
+
+  <!-- Modal PIX -->
+  <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <button class="modal-close" id="modal-close" aria-label="Fechar modal">✕</button>
+      <p class="modal-label">Presentear via PIX</p>
+      <h3 class="modal-gift-name" id="modal-name">—</h3>
+      <p class="modal-value" id="modal-val">—</p>
+      <div class="qr-wrapper">
+        <div id="qr-canvas"></div>
+      </div>
+      <p class="modal-pix-key-label">Chave PIX</p>
+      <p class="modal-pix-key" id="modal-key"></p>
+      <button class="btn-copy" id="btn-copy">Copiar chave PIX</button>
+      <p class="modal-note">Após o depósito, envie o comprovante para a noiva via WhatsApp para que possamos registrar seu presente com muito carinho. 💛</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
