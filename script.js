@@ -440,6 +440,62 @@ const DEMO_GIFTS = [
 
 
 /* ══════════════════════════════════════════════════════
+   ✨  PARTÍCULAS DOURADAS — FOTO DO CASAL
+══════════════════════════════════════════════════════ */
+
+/**
+ * Gera N partículas flutuando ao redor da foto circular.
+ * Cada partícula tem tamanho, posição, delay e duração aleatórios.
+ * São criadas após a revelação da foto (delay de 2.4s).
+ */
+function spawnPhotoParticles() {
+  const photo = document.querySelector('.hero-couple-photo');
+  if (!photo) return;
+
+  const TOTAL      = 14;    // número de partículas
+  const RADIUS_MIN = 0.38;  // fração do raio onde partículas aparecem (relativo ao container)
+  const RADIUS_MAX = 0.56;
+
+  for (let i = 0; i < TOTAL; i++) {
+    const p = document.createElement('span');
+    p.className = 'photo-particle';
+
+    /* Posição aleatória ao longo da borda do círculo */
+    const angle  = (i / TOTAL) * 2 * Math.PI + (Math.random() * 0.6 - 0.3);
+    const radius = RADIUS_MIN + Math.random() * (RADIUS_MAX - RADIUS_MIN);
+
+    /* Centro do container = 50% / 50% */
+    const cx = 50 + Math.cos(angle) * radius * 100;
+    const cy = 50 + Math.sin(angle) * radius * 100;
+
+    /* Tamanho da partícula: entre 2px e 5px */
+    const size = 2 + Math.random() * 3;
+
+    /* Movimento: flutua levemente para fora do centro */
+    const tx = (Math.cos(angle) * (4 + Math.random() * 6)).toFixed(1) + 'px';
+    const ty = (Math.sin(angle) * (4 + Math.random() * 6) - 4).toFixed(1) + 'px';
+
+    /* Timing aleatório para não ficarem todas sincronizadas */
+    const duration = (2.4 + Math.random() * 2.4).toFixed(2) + 's';
+    const delay    = (Math.random() * 3).toFixed(2) + 's';
+
+    Object.assign(p.style, {
+      width:    size + 'px',
+      height:   size + 'px',
+      left:     cx.toFixed(2) + '%',
+      top:      cy.toFixed(2) + '%',
+      '--duration': duration,
+      '--delay':    delay,
+      '--tx':       tx,
+      '--ty':       ty,
+    });
+
+    photo.appendChild(p);
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════
    🚀  INICIALIZAÇÃO
 ══════════════════════════════════════════════════════ */
 (function init() {
@@ -453,6 +509,9 @@ const DEMO_GIFTS = [
       pageIntro.classList.add('done');
     });
   }
+
+  /* Dispara partículas após a revelação da foto (2.4s = fim da animação) */
+  setTimeout(spawnPhotoParticles, 2400);
 
   /* Mostra dados demo imediatamente (UX) */
   allGifts = DEMO_GIFTS;
