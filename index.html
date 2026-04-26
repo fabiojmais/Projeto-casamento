@@ -5,78 +5,149 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Lista de presentes de casamento Aline & Raul. Escolha um presente ou contribua com um valor livre via PIX.">
   <title>Aline & Raul — Lista de Presentes</title>
-  
-  <!-- 🆕 Favicon -->
-  <link rel="icon" type="image/svg+xml" href="img/favicon.png">
-  
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="img/favicon.png">
+
+  <!-- Preconnect para performance (carrega fontes mais rápido) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <!-- Estilos -->
   <link rel="stylesheet" href="style.css">
-  
+
   <!-- Fontes -->
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-  
-  <!-- 🆕 Biblioteca QR Code (carregada com defer para não bloquear renderização) -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+
+  <!-- Biblioteca QR Code (defer = não bloqueia renderização) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 </head>
 <body>
-  <header class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-ornament"></div>
+
+  <!-- ═══════════════════════════════════
+       TELA DE ENTRADA (page transition)
+  ═══════════════════════════════════ -->
+  <div class="page-intro" id="page-intro" aria-hidden="true">
+    <div class="page-intro-inner">
+      <div class="page-intro-line"></div>
+      <p class="page-intro-eyebrow">Lista de Presentes</p>
+      <p class="page-intro-names">Aline <em>&amp;</em> Raul</p>
+      <div class="page-intro-line"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       HERO
+  ═══════════════════════════════════ -->
+  <header class="hero" role="banner">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="hero-ornament" aria-hidden="true"></div>
+
     <p class="hero-eyebrow">Lista de Presentes</p>
-    <h1 class="hero-names">Aline Cristina <em>&</em> Raul Pietro <span class="hero-amp"></h1>
-    
-    <!-- 🆕 Data e Cidade com destaque visual -->
+
+    <!-- Nomes do casal: Aline / & / Raul empilhados centralizados -->
+    <h1 class="hero-names">
+      <span class="hero-nome-noiva">Aline Cristina</span>
+      <em class="hero-ampersand">&amp;</em>
+      <span class="hero-nome-noivo">Raul Pietro</span>
+    </h1>
+
+    <!-- Data e cidade -->
     <p class="hero-date">
       <span class="highlight-date">20 · Maio · 2027</span>
-      <span class="highlight-sep">·</span>
-      <span class="highlight-city">Patrocínio-MG</span>
+      <span class="highlight-sep" aria-hidden="true">·</span>
+      <span class="highlight-city">Patrocínio — MG</span>
     </p>
-    
-    <div class="hero-scroll">
+
+    <!-- Indicador de scroll -->
+    <div class="hero-scroll" aria-hidden="true">
       <span>Rolar</span>
       <div class="scroll-line"></div>
     </div>
   </header>
 
-  <section class="section-intro">
-    <p class="section-label">Com amor & gratidão</p>
+  <!-- ═══════════════════════════════════
+       INTRODUÇÃO
+  ═══════════════════════════════════ -->
+  <section class="section-intro" aria-label="Introdução">
+    <p class="section-label">Com amor &amp; gratidão</p>
     <h2 class="section-title">Nossa Lista de <em>Presentes</em></h2>
-    <p class="section-desc">Cada presente nesta lista foi escolhido com carinho para começar nossa história juntos.<br>Sua presença já é o maior presente — mas se desejar nos presentear, ficaremos eternamente gratos.</p>
+    <p class="section-desc">
+      Cada presente nesta lista foi escolhido com carinho para começar nossa história juntos.<br>
+      Sua presença já é o maior presente — mas se desejar nos presentear, ficaremos eternamente gratos.
+    </p>
   </section>
 
-  <!-- 🆕 Container de filtros + botão Presente Livre -->
-  <div class="filters" id="filters">
-    <button id="btn-free-gift" class="filter-btn btn-free-gift">🎁 Presente Livre</button>
-  </div>
+  <!-- ═══════════════════════════════════
+       FILTROS
+  ═══════════════════════════════════ -->
+  <nav class="filters" id="filters" aria-label="Filtrar presentes por categoria">
+    <!-- Botões de categoria injetados via JS -->
+    <!-- Botão "Presente Livre" adicionado por último pelo JS -->
+  </nav>
 
-  <section class="gifts-section">
-    <div id="gifts-container" class="gifts-loading">
-      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+  <!-- ═══════════════════════════════════
+       GRID DE PRESENTES
+  ═══════════════════════════════════ -->
+  <section class="gifts-section" aria-label="Lista de presentes">
+    <!-- Estado de carregamento inicial -->
+    <div id="gifts-container" class="gifts-loading" role="status" aria-live="polite" aria-label="Carregando presentes">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="dot" aria-hidden="true"></span>
     </div>
   </section>
 
-  <!-- 🆕 Footer com créditos da empresa -->
-  <footer class="footer">
-    <p class="footer-names">Aline Cristina & Raul Pietro Baptista</p>
+  <!-- ═══════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════ -->
+  <footer class="footer" role="contentinfo">
+    <p class="footer-names">Aline Cristina &amp; Raul Pietro Baptista</p>
     <p class="footer-thanks">Obrigado por fazer parte da nossa história ✦</p>
-    <div class="modal-ornament" style="margin: 2rem auto;"></div>
-    <p class="footer-copyright">© <span id="current-year"></span> B3 TECH - Soluções em Tecnologia e Segurança da Informação. Todos os direitos reservados.</p>
+    <div class="modal-ornament" style="margin: 2rem auto;" aria-hidden="true"></div>
+    <p class="footer-copyright">
+      © <span id="current-year"></span> B3 TECH — Soluções em Tecnologia e Segurança da Informação.
+      Todos os direitos reservados.
+    </p>
   </footer>
 
-  <!-- Modal PIX -->
-  <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <!-- ═══════════════════════════════════
+       MODAL PIX
+       CORREÇÃO: focus-trap implementado via JS
+  ═══════════════════════════════════ -->
+  <div
+    class="modal-overlay"
+    id="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    aria-describedby="modal-desc"
+    hidden
+  >
     <div class="modal">
       <button class="modal-close" id="modal-close" aria-label="Fechar modal">✕</button>
-      <p class="modal-label">Presentear via PIX</p>
-      <h3 class="modal-gift-name" id="modal-name">—</h3>
+
+      <p class="modal-label" aria-hidden="true">Presentear via PIX</p>
+      <h3 class="modal-gift-name" id="modal-title">—</h3>
       <p class="modal-value" id="modal-val">—</p>
-      <div class="qr-wrapper">
+
+      <div class="qr-wrapper" aria-label="QR Code PIX">
+        <!-- Loader do QR Code -->
+        <div id="qr-loader" class="qr-loader" aria-label="Gerando QR Code">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
         <div id="qr-canvas"></div>
       </div>
+
       <p class="modal-pix-key-label">Chave PIX</p>
-      <p class="modal-pix-key" id="modal-key"></p>
+      <p class="modal-pix-key" id="modal-key" aria-label="Chave PIX para copiar"></p>
+
       <button class="btn-copy" id="btn-copy">Copiar chave PIX</button>
-      <p class="modal-note">Após o depósito, envie o comprovante para a noiva via WhatsApp para que possamos registrar seu presente com muito carinho. 💛</p>
+
+      <p class="modal-note" id="modal-desc">
+        Após o depósito, envie o comprovante para a noiva via WhatsApp para que
+        possamos registrar seu presente com muito carinho. 💛
+      </p>
     </div>
   </div>
 
