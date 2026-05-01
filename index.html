@@ -65,6 +65,32 @@
       <div class="scroll-line"></div>
     </div>
 
+    <!-- Contador regressivo -->
+    <div class="hero-countdown" id="countdown" aria-label="Contagem regressiva para o casamento">
+      <p class="countdown-label">Faltam</p>
+      <div class="countdown-units">
+        <div class="countdown-unit" data-unit="days">
+          <span class="countdown-num">000</span>
+          <span class="countdown-tag">dias</span>
+        </div>
+        <span class="countdown-sep" aria-hidden="true">·</span>
+        <div class="countdown-unit" data-unit="hours">
+          <span class="countdown-num">00</span>
+          <span class="countdown-tag">horas</span>
+        </div>
+        <span class="countdown-sep" aria-hidden="true">·</span>
+        <div class="countdown-unit" data-unit="minutes">
+          <span class="countdown-num">00</span>
+          <span class="countdown-tag">min</span>
+        </div>
+        <span class="countdown-sep" aria-hidden="true">·</span>
+        <div class="countdown-unit" data-unit="seconds">
+          <span class="countdown-num">00</span>
+          <span class="countdown-tag">seg</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Foto do casal — posicionada no lado direito, formato circular -->
     <div class="hero-couple-photo" aria-hidden="true">
       <div class="couple-photo-ring couple-photo-ring--outer"></div>
@@ -91,6 +117,24 @@
       Sua presença já é o maior presente — mas se desejar nos presentear, ficaremos eternamente gratos.
     </p>
   </section>
+
+  <!-- ═══════════════════════════════════
+       BARRA DE PROGRESSO (#1)
+  ═══════════════════════════════════ -->
+  <section class="progress-section" aria-label="Progresso da lista de presentes">
+    <div class="progress-header">
+      <p class="progress-label" id="progress-label">Carregando…</p>
+      <span class="progress-counter" id="progress-counter">0%</span>
+    </div>
+    <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-bar-fill" id="progress-bar-fill"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       BUSCA POR NOME (#3)
+  ═══════════════════════════════════ -->
+  <div class="search-section" id="search-wrap" aria-label="Buscar presente por nome"></div>
 
   <!-- ═══════════════════════════════════
        FILTROS
