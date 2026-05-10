@@ -29,29 +29,57 @@ const delay      = ms => new Promise(r => setTimeout(r, ms));
 /* ══════════════════════════════════════════════════════
 📦  CACHE & RESERVA TEMPORÁRIA
 ══════════════════════════════════════════════════════ */
-function getCache() { try { return JSON.parse(localStorage.getItem(STORAGE_CACHE)) || null; } catch { return null; } }
-function setCache(data) { try { localStorage.setItem(STORAGE_CACHE, JSON.stringify(data)); } catch {} }
-function getReservations() { try { return JSON.parse(localStorage.getItem(STORAGE_RES)) || {}; } catch { return {}; } }
+function getCache() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_CACHE)) || null; } catch { return null; }
+}
+function setCache(data) {
+  try { localStorage.setItem(STORAGE_CACHE, JSON.stringify(data)); } catch {}
+}
+function getReservations() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_RES)) || {}; } catch { return {}; }
+}
 function setReservations(res) { localStorage.setItem(STORAGE_RES, JSON.stringify(res)); }
-function isReserved(name) { const r = getReservations(); return r[name] && r[name] > Date.now(); }
+function isReserved(name) {
+  const res = getReservations();
+  return res[name] && res[name] > Date.now();
+}
 function reserveGift(name) {
-  const r = getReservations(); r[name] = Date.now() + CONFIG.RESERVATION_DURATION; setReservations(r);
+  const res = getReservations();
+  res[name] = Date.now() + CONFIG.RESERVATION_DURATION;
+  setReservations(res);
   showToast(`⏳ "${name}" reservado por 2h no seu dispositivo`);
 }
 function clearExpiredReservations() {
-  const r = getReservations(); Object.keys(r).forEach(k => { if(r[k]<=Date.now()) delete r[k]; }); setReservations(r);
+  const res = getReservations();
+  Object.keys(res).forEach(k => { if (res[k] <= Date.now()) delete res[k]; });
+  setReservations(res);
 }
 
 /* ══════════════════════════════════════════════════════
-🌐  BUSCA GOOGLE SHEETS (RETRY + FALLBACK)
+🌐  BUSCA GOOGLE SHEETS (CSV PÚBLICO — PUBLICADO NA WEB)
 ══════════════════════════════════════════════════════ */
-const BASE = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}`;
+const PUBLISHED_ID = '2PACX-1vROdU8-LYVY-g87jed2r5D1I2MQ-S1VxhrS9f1R4XXWX5_dT0uoZyNmaaTGj9k43iOG14x7AouOuAPH';
 const SHEET_URLS = [
-  `${BASE}/gviz/tq?tqx=out:json&headers=1`,
-  `${BASE}/gviz/tq?tqx=out:json&headers=1&sheet=P%C3%A1gina1`,
-  `${BASE}/gviz/tq?tqx=out:json&headers=1&sheet=Sheet1`,
-  `${BASE}/gviz/tq?tqx=out:json&headers=1&gid=0`,
+  `https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?output=csv`,
+  `https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?output=csv&gid=0`,
 ];
+
+// Parser CSV simples e robusto (lida com campos entre aspas e vírgulas internas)
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  return lines.slice(1).map(line => {
+    const cols = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
 
 let allGifts       = [];
 let activeCategory = 'Todos';
@@ -69,16 +97,32 @@ async function loadGifts(silent = false) {
         const res = await fetch(url, { credentials:'omit', cache:'no-store', signal: controller.signal });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        if (!text || text.includes('"errors"')) throw new Error('Sheet error');
-        const jsonStr = text.replace(/^[\s\S]*?setResponse\(/,'').replace(/\s*\);\s*$/,'').trim();
-        const json = JSON.parse(jsonStr);
-        if (!json.table?.rows?.length) throw new Error('No rows');
 
-        const fetched = json.table.rows.map(r => ({
-          categoria: cell(r,0), nome: cell(r,1), valor: cellNum(r,2),
-          foto: cell(r,3), status: cell(r,4), comprado: cell(r,5).toLowerCase()==='sim'
+        const text = await res.text();
+        if (!text || text.length < 10) throw new Error('Empty response');
+
+        const rows = parseCsv(text);
+        if (!rows.length) throw new Error('No rows');
+
+        const fetched = rows.map(c => ({
+          categoria: (c[0]||'').trim(),
+          nome:      (c[1]||'').trim(),
+          valor:     (() => {
+            let s = (c[2]||'').trim().replace(/[^\d.,]/g,'');
+            if (!s) return 0;
+            // Formato BR com ponto de milhar: "1.500" ou "1.500,00"
+            if (/\.\d{3}/.test(s)) { s = s.replace(/\./g,'').replace(',','.'); }
+            // Só vírgula decimal: "1500,50"
+            else if (s.includes(',')) { s = s.replace(',','.'); }
+            // Número puro: "1500" ou "1500.50"
+            const n = parseFloat(s);
+            return isNaN(n) || n < 0 ? 0 : n;
+          })(),
+          foto:      (c[3]||'').trim(),
+          status:    (c[4]||'').trim(),
+          comprado:  (c[5]||'').trim().toLowerCase() === 'sim',
         })).filter(g => g.nome && g.nome.length <= 200);
+
         if (!fetched.length) throw new Error('Empty');
 
         const changed = sheetLoaded && (fetched.length !== allGifts.length || JSON.stringify(fetched.map(x=>x.nome).sort()) !== JSON.stringify(allGifts.map(x=>x.nome).sort()));
@@ -107,9 +151,11 @@ async function loadGifts(silent = false) {
     }
   }
 
+  // Fallback para cache local
   const cached = getCache();
   if (cached && cached.length) {
-    allGifts = cached; sheetLoaded = true; buildFilters(); updateProgress(); applyFiltersAndRender();
+    allGifts = cached; sheetLoaded = true;
+    buildFilters(); updateProgress(); applyFiltersAndRender();
     showToast('📴 Exibindo versão salva recentemente');
     return true;
   }
@@ -125,8 +171,6 @@ function showSheetError() {
   b.innerHTML=`<span>⚠️ Planilha offline. Exibindo cache local.</span><button aria-label="Fechar" style="background:none;border:none;color:var(--gold,#b8965a);cursor:pointer;font-size:0.9rem;padding:0;margin-left:0.4rem;">✕</button>`;
   b.querySelector('button').onclick=()=>b.remove(); document.body.appendChild(b); setTimeout(()=>b?.remove(),6000);
 }
-const cell  = (r,i) => r.c?.[i]?.v!=null ? String(r.c[i].v).trim() : '';
-const cellNum=(r,i) => { const v=r.c?.[i]?.v; if(v==null) return 0; const n=Number(v); return isNaN(n)||n<0?0:n; };
 
 /* ══════════════════════════════════════════════════════
 1️⃣  BARRA DE PROGRESSO + CONTADOR
@@ -201,59 +245,189 @@ function setupAutocomplete() {
 const cardObserver = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting){e.target.classList.add('card-visible');cardObserver.unobserve(e.target);}}), {threshold:0.08});
 
 /* ══════════════════════════════════════════════════════
-🃏  RENDERIZA CARDS
+🃏  RENDERIZA CARDS (COM PAGINAÇÃO)
 ══════════════════════════════════════════════════════ */
+const PAGE_SIZE = 12;
+let currentPage = 0;
+let currentList = [];
+
+function buildCardElement(gift) {
+  clearExpiredReservations();
+  const card = document.createElement('div');
+  const reserved = isReserved(gift.nome);
+  card.className = `gift-card card-io${gift.comprado?' comprado':''}${reserved?' reservado':''}`;
+  const icon = CONFIG.CATEGORY_ICON[gift.categoria] ?? '🎁';
+  const nameSafe = escapeHtml(gift.nome), catSafe = escapeHtml(gift.categoria);
+  const safeImg = isSafeUrl(gift.foto) ? escapeAttr(gift.foto) : '';
+  const imgTag = safeImg
+    ? `<img class="gift-image" src="${safeImg}" alt="Foto de ${nameSafe}" loading="lazy" decoding="async" width="400" height="300" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gift-image-placeholder" style="display:none" aria-hidden="true">${icon}</div>`
+    : `<div class="gift-image-placeholder" aria-hidden="true">${icon}</div>`;
+  let statusBadge = gift.comprado ? `<span class="gift-badge comprado">✓ Confirmado</span>` :
+                    reserved ? `<span class="gift-badge reserved">⏳ Reservado</span>` :
+                               `<span class="gift-badge available">✦ Disponível</span>`;
+  const valorFmt = gift.valor>0 ? gift.valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : 'A combinar';
+  card.innerHTML = `
+    ${statusBadge}
+    ${imgTag}
+    <div class="gift-body">
+      <p class="gift-category">${catSafe}</p>
+      <h3 class="gift-name">${nameSafe}</h3>
+      <div class="gift-footer">
+        <div class="gift-value"><span class="gift-value-label">Valor estimado</span><strong>${valorFmt}</strong></div>
+        <div class="gift-actions">
+          <button class="btn-share" data-name="${escapeAttr(gift.nome)}" aria-label="Compartilhar ${nameSafe}">⬆</button>
+          <button class="btn-reserve" data-name="${escapeAttr(gift.nome)}" ${reserved||gift.comprado?'disabled':''} aria-label="Reservar ${nameSafe}">⏳</button>
+          <button class="btn-pix" ${gift.comprado||reserved?'disabled aria-disabled="true"':''} data-name="${escapeAttr(gift.nome)}" data-value="${gift.valor}" aria-label="Presentear ${nameSafe} via PIX">PIX ✦</button>
+        </div>
+      </div>
+    </div>`;
+  cardObserver.observe(card);
+  return card;
+}
+
+function goToPage(page, direction = 'next') {
+  const container = document.getElementById('gifts-container');
+  if (!container) return;
+  const totalPages = Math.ceil(currentList.length / PAGE_SIZE);
+  if (page < 0 || page >= totalPages) return;
+
+  const pageItems = currentList.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const grid = document.createElement('div');
+  grid.className = 'gifts-grid';
+  pageItems.forEach(gift => grid.appendChild(buildCardElement(gift)));
+  grid.addEventListener('click', e => {
+    const pix = e.target.closest('.btn-pix'), share = e.target.closest('.btn-share'), res = e.target.closest('.btn-reserve');
+    if(pix && !pix.disabled) openModal(pix.dataset.name, parseFloat(pix.dataset.value)||0);
+    else if(share) shareGift(share.dataset.name);
+    else if(res && !res.disabled) { reserveGift(res.dataset.name); applyFiltersAndRender(); }
+  });
+
+  const oldGrid = container.querySelector('.gifts-grid');
+  if (oldGrid) {
+    const outDir = direction === 'next' ? '-100%' : '100%';
+    const inDir  = direction === 'next' ? '100%'  : '-100%';
+    grid.style.cssText = `position:absolute;inset:0;transform:translateX(${inDir});transition:transform 0.55s cubic-bezier(0.77,0,0.175,1);`;
+    oldGrid.style.cssText = `position:absolute;inset:0;transform:translateX(0);transition:transform 0.55s cubic-bezier(0.77,0,0.175,1);`;
+    container.style.position = 'relative';
+    container.appendChild(grid);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        oldGrid.style.transform = `translateX(${outDir})`;
+        grid.style.transform = 'translateX(0)';
+        setTimeout(() => {
+          oldGrid.remove();
+          grid.style.cssText = '';
+          container.style.position = '';
+          updatePaginationUI(page, totalPages);
+        }, 560);
+      });
+    });
+  } else {
+    container.innerHTML = '';
+    container.appendChild(grid);
+    updatePaginationUI(page, totalPages);
+  }
+
+  currentPage = page;
+  if (page > 0) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updatePaginationUI(page, totalPages) {
+  let nav = document.getElementById('pagination-nav');
+  if (totalPages <= 1) { if (nav) nav.remove(); return; }
+  if (!nav) {
+    nav = document.createElement('nav');
+    nav.id = 'pagination-nav';
+    nav.setAttribute('aria-label', 'Paginação de presentes');
+    const giftsSection = document.querySelector('.gifts-section');
+    if (giftsSection) giftsSection.appendChild(nav);
+  }
+  nav.innerHTML = `
+    <button class="pg-arrow pg-prev" aria-label="Página anterior" ${page===0?'disabled':''}>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 14L6 9L11 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="pg-dots">
+      ${Array.from({length:totalPages},(_,i)=>`<button class="pg-dot${i===page?' pg-dot--active':''}" data-pg="${i}" aria-label="Página ${i+1}">${i===page?'✦':''}</button>`).join('')}
+    </div>
+    <button class="pg-arrow pg-next" aria-label="Próxima página" ${page===totalPages-1?'disabled':''}>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12 9L7 14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>`;
+  nav.querySelector('.pg-prev').onclick = () => goToPage(currentPage - 1, 'prev');
+  nav.querySelector('.pg-next').onclick = () => goToPage(currentPage + 1, 'next');
+  nav.querySelectorAll('.pg-dot').forEach(btn => {
+    btn.onclick = () => goToPage(parseInt(btn.dataset.pg), parseInt(btn.dataset.pg) > currentPage ? 'next' : 'prev');
+  });
+  // Swipe touch
+  let tx = null;
+  const cont = document.getElementById('gifts-container');
+  if (cont && !cont._swipeInit) {
+    cont._swipeInit = true;
+    cont.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, {passive:true});
+    cont.addEventListener('touchend', e => {
+      if (tx === null) return;
+      const dx = e.changedTouches[0].clientX - tx; tx = null;
+      if (Math.abs(dx) > 50) dx < 0 ? goToPage(currentPage+1,'next') : goToPage(currentPage-1,'prev');
+    }, {passive:true});
+  }
+}
+
 function renderGifts(list) {
   const container = document.getElementById('gifts-container'); if(!container) return;
   container.removeAttribute('role');
-  if(!list.length) { container.innerHTML=`<p class="gifts-empty">Nenhum presente encontrado.</p>`; return; }
-  container.innerHTML = buildSkeletons(list.length);
-  requestAnimationFrame(() => {
-    const grid = document.createElement('div'); grid.className='gifts-grid'; clearExpiredReservations();
-    list.forEach(gift => {
-      const card = document.createElement('div');
-      const reserved = isReserved(gift.nome);
-      card.className = `gift-card card-io${gift.comprado?' comprado':''}${reserved?' reservado':''}`;
-      const icon = CONFIG.CATEGORY_ICON[gift.categoria] ?? '🎁';
-      const nameSafe = escapeHtml(gift.nome), catSafe = escapeHtml(gift.categoria);
-      const safeImg = isSafeUrl(gift.foto) ? escapeAttr(gift.foto) : '';
-
-      const imgTag = safeImg
-        ? `<img class="gift-image" src="${safeImg}" alt="Foto de ${nameSafe}" loading="lazy" decoding="async" width="400" height="300" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gift-image-placeholder" style="display:none" aria-hidden="true">${icon}</div>`
-        : `<div class="gift-image-placeholder" aria-hidden="true">${icon}</div>`;
-
-      let statusBadge = gift.comprado ? `<span class="gift-badge comprado">✓ Confirmado</span>` :
-                        reserved ? `<span class="gift-badge reserved">⏳ Reservado</span>` :
-                                   `<span class="gift-badge available">✦ Disponível</span>`;
-
-      const valorFmt = gift.valor>0 ? gift.valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : 'A combinar';
-      card.innerHTML = `
-        ${statusBadge}
-        ${imgTag}
-        <div class="gift-body">
-          <p class="gift-category">${catSafe}</p>
-          <h3 class="gift-name">${nameSafe}</h3>
-          <div class="gift-footer">
-            <div class="gift-value"><span class="gift-value-label">Valor estimado</span><strong>${valorFmt}</strong></div>
-            <div class="gift-actions">
-              <button class="btn-share" data-name="${escapeAttr(gift.nome)}" aria-label="Compartilhar ${nameSafe}">⬆</button>
-              <button class="btn-reserve" data-name="${escapeAttr(gift.nome)}" ${reserved||gift.comprado?'disabled':''} aria-label="Reservar ${nameSafe}">⏳</button>
-              <button class="btn-pix" ${gift.comprado||reserved?'disabled aria-disabled="true"':''} data-name="${escapeAttr(gift.nome)}" data-value="${gift.valor}" aria-label="Presentear ${nameSafe} via PIX">PIX ✦</button>
-            </div>
-          </div>
-        </div>`;
-      grid.appendChild(card); cardObserver.observe(card);
-    });
-    container.innerHTML=''; container.appendChild(grid);
-    grid.addEventListener('click', e => {
-      const pix = e.target.closest('.btn-pix'), share = e.target.closest('.btn-share'), res = e.target.closest('.btn-reserve');
-      if(pix && !pix.disabled) openModal(pix.dataset.name, parseFloat(pix.dataset.value)||0);
-      else if(share) shareGift(share.dataset.name);
-      else if(res && !res.disabled) { reserveGift(res.dataset.name); applyFiltersAndRender(); }
-    });
-  });
+  if(!list.length) {
+    container.innerHTML=`<p class="gifts-empty">Nenhum presente encontrado.</p>`;
+    const nav = document.getElementById('pagination-nav'); if(nav) nav.remove();
+    return;
+  }
+  currentList = list;
+  currentPage = 0;
+  container.innerHTML = buildSkeletons(Math.min(PAGE_SIZE, list.length));
+  requestAnimationFrame(() => { goToPage(0, 'next'); });
 }
 function buildSkeletons(n) { let h='<div class="gifts-grid">'; for(let i=0;i<n;i++) h+=`<div class="gift-card gift-skeleton" aria-hidden="true"><div class="skel skel-image"></div><div class="gift-body"><div class="skel skel-cat"></div><div class="skel skel-name"></div><div class="gift-footer"><div class="skel skel-value"></div><div class="skel skel-btn"></div></div></div></div>`; return h+'</div>'; }
+
+/* Injeta CSS de paginação uma única vez */
+(function injectPaginationCSS(){
+  if(document.getElementById('pg-styles')) return;
+  const s = document.createElement('style'); s.id='pg-styles';
+  s.textContent = `
+    #pagination-nav {
+      display: flex; align-items: center; justify-content: center;
+      gap: 1.2rem; padding: 3rem 1rem 1.5rem; user-select: none;
+    }
+    .pg-arrow {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1px solid rgba(184,150,90,0.3); background: transparent;
+      color: var(--gold); cursor: pointer; display: flex; align-items: center;
+      justify-content: center; transition: all 0.3s ease; flex-shrink: 0;
+    }
+    .pg-arrow:hover:not(:disabled) {
+      border-color: var(--gold); background: rgba(184,150,90,0.08);
+      transform: scale(1.08);
+    }
+    .pg-arrow:disabled { opacity: 0.2; cursor: not-allowed; }
+    .pg-dots { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+    .pg-dot {
+      width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(184,150,90,0.2);
+      background: transparent; color: transparent; cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.25,0.46,0.45,0.94); position: relative; font-size: 0;
+    }
+    .pg-dot::after {
+      content: ''; position: absolute; inset: 50%; transform: translate(-50%,-50%);
+      width: 5px; height: 5px; border-radius: 50%; background: rgba(184,150,90,0.35);
+      transition: all 0.35s ease;
+    }
+    .pg-dot--active {
+      width: 36px; height: 36px; border-color: var(--gold);
+      background: rgba(184,150,90,0.06); font-size: 0.75rem;
+      color: var(--gold); display: flex; align-items: center; justify-content: center;
+    }
+    .pg-dot--active::after { display: none; }
+    .pg-dot:hover:not(.pg-dot--active) { border-color: rgba(184,150,90,0.5); }
+    .pg-dot:hover:not(.pg-dot--active)::after { background: rgba(184,150,90,0.6); width: 7px; height: 7px; }
+  `;
+  document.head.appendChild(s);
+})();
 
 /* ══════════════════════════════════════════════════════
 2️⃣  COMPARTILHAR & TOAST
@@ -334,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopy.onclick=()=>copyToClipboard(CONFIG.PIX_KEY).then(()=>{btnCopy.textContent='✓ Chave copiada!';btnCopy.classList.add('copied');showToast('Chave PIX copiada! Abra seu banco e cole 💛');setTimeout(()=>{btnCopy.textContent='Copiar chave PIX';btnCopy.classList.remove('copied');},2500);}).catch(()=>showToast('Copie manualmente.'));
   }
   setTimeout(spawnPhotoParticles,2400); initCountdown(); setupAutocomplete();
+  // Carga inicial garantida
   buildFilters(); updateProgress(); applyFiltersAndRender();
   loadGifts(false).then(ok=>{if(ok)startAutoRefresh();});
 });

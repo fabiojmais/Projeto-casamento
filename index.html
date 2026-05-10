@@ -4,50 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aline & Raul — Lista de Presentes</title>
-  
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="img/favicon.png">
-  
-  <!-- Open Graph para WhatsApp/Redes -->
-  <meta property="og:title" content="Lista de Presentes — Aline & Raul">
-  <meta property="og:description" content="Sua presença já é nosso maior presente. 💛">
-  <meta property="og:image" content="img/bg.jpg">
-  <meta property="og:type" content="website">
-
-  <!-- Fontes -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-
-  <!-- QRCode.js -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- Favicon -->
+  <link rel="icon" type="image/png" href="img/favicon.png">
 </head>
 <body>
-
-  <!-- Tela de Entrada -->
+  <!-- Page Intro -->
   <div id="page-intro" class="page-intro">
     <div class="page-intro-inner">
-      <span class="page-intro-eyebrow">Lista de Presentes</span>
+      <p class="page-intro-eyebrow">Lista de Presentes</p>
       <h1 class="page-intro-names">Aline <em>&</em> Raul</h1>
       <div class="page-intro-line"></div>
     </div>
   </div>
 
-  <!-- Hero -->
-  <section class="hero">
+  <!-- Hero Section -->
+  <header class="hero">
     <div class="hero-bg"></div>
     <div class="hero-ornament"></div>
 
-    <div class="hero-couple-photo">
-      <img src="img/bg.jpg" alt="Aline e Raul" class="couple-photo-img" loading="eager">
-      <div class="couple-photo-overlay"></div>
-      <div class="couple-photo-glow"></div>
+    <!-- ✅ Foto do casal restaurada (Estrutura original + Classe correta) -->
+    <div class="hero-couple-photo" aria-hidden="true">
       <div class="couple-photo-ring couple-photo-ring--outer"></div>
       <div class="couple-photo-ring couple-photo-ring--inner"></div>
+      <div class="couple-photo-glow"></div>
+      <img
+        src="img/bg.jpg"
+        alt="Foto do casal Aline e Raul"
+        class="couple-photo-img"
+        loading="eager"
+      />
+      <div class="couple-photo-overlay"></div>
     </div>
 
-    <p class="hero-eyebrow">Lista de Presentes</p>
+    <p class="hero-eyebrow">Com amor & gratidão</p>
     <h2 class="hero-names">
       <span class="hero-nome-noiva">Aline Cristina</span>
       <span class="hero-ampersand">&</span>
@@ -55,56 +48,52 @@
     </h2>
     <p class="hero-date">
       <span class="highlight-date">20 · Maio · 2027</span>
-      <span class="highlight-sep">·</span>
+      <span class="highlight-sep">•</span>
       <span class="highlight-city">Patrocínio — MG</span>
     </p>
-
+    <div class="hero-countdown" id="countdown">
+      <p class="countdown-label">Faltam</p>
+      <div class="countdown-units">
+        <div class="countdown-unit" data-unit="days"><span class="countdown-num">00</span><span class="countdown-tag">dias</span></div>
+        <span class="countdown-sep">:</span>
+        <div class="countdown-unit" data-unit="hours"><span class="countdown-num">00</span><span class="countdown-tag">horas</span></div>
+        <span class="countdown-sep">:</span>
+        <div class="countdown-unit" data-unit="minutes"><span class="countdown-num">00</span><span class="countdown-tag">min</span></div>
+        <span class="countdown-sep">:</span>
+        <div class="countdown-unit" data-unit="seconds"><span class="countdown-num">00</span><span class="countdown-tag">seg</span></div>
+      </div>
+    </div>
     <div class="hero-scroll">
       <span>Rolar</span>
       <div class="scroll-line"></div>
     </div>
+  </header>
 
-    <div id="countdown" class="hero-countdown">
-      <span class="countdown-label">Faltam</span>
-      <div class="countdown-units">
-        <div class="countdown-unit" data-unit="days"><span class="countdown-num">000</span><span class="countdown-tag">dias</span></div>
-        <span class="countdown-sep">·</span>
-        <div class="countdown-unit" data-unit="hours"><span class="countdown-num">00</span><span class="countdown-tag">horas</span></div>
-        <span class="countdown-sep">·</span>
-        <div class="countdown-unit" data-unit="minutes"><span class="countdown-num">00</span><span class="countdown-tag">min</span></div>
-        <span class="countdown-sep">·</span>
-        <div class="countdown-unit" data-unit="seconds"><span class="countdown-num">00</span><span class="countdown-tag">seg</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Introdução -->
+  <!-- Section Intro -->
   <section class="section-intro">
-    <p class="section-label">Com amor & gratidão</p>
-    <h2 class="section-title">Nossa Lista de Presentes</h2>
+    <p class="section-label">Nossa Lista</p>
+    <h2 class="section-title">Lista de <em>Presentes</em></h2>
     <p class="section-desc">Cada presente nesta lista foi escolhido com carinho para começar nossa história juntos. Sua presença já é o maior presente — mas se desejar nos presentear, ficaremos eternamente gratos.</p>
   </section>
 
-  <!-- Barra de Progresso -->
-  <div class="progress-section">
+  <!-- Progress -->
+  <section class="progress-section">
     <div class="progress-header">
       <span id="progress-label">Carregando…</span>
-      <span id="progress-counter">0%</span>
+      <span class="progress-counter" id="progress-counter">0%</span>
     </div>
-    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-      <div id="progress-bar-fill" class="progress-bar-fill"></div>
-    </div>
-  </div>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progress-bar-fill"></div></div>
+  </section>
 
-  <!-- Busca -->
-  <div class="search-section" id="search-wrap"></div>
+  <!-- Filters & Search -->
+  <section class="filters" id="filters"></section>
+  <section class="search-section"><div id="search-wrap"></div></section>
 
-  <!-- Filtros -->
-  <div id="filters" class="filters"></div>
-
-  <!-- Grid de Presentes -->
+  <!-- Gifts Grid -->
   <section class="gifts-section">
-    <div id="gifts-container" class="gifts-container"></div>
+    <div id="gifts-container" class="gifts-loading">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
   </section>
 
   <!-- Footer -->
@@ -114,21 +103,43 @@
     <p class="footer-copyright">© <span id="current-year"></span> B3 TECH — Soluções em Tecnologia e Segurança da Informação. Todos os direitos reservados.</p>
   </footer>
 
-  <!-- Modal PIX -->
+  <!-- PIX Modal -->
   <div id="modal-overlay" class="modal-overlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <button id="modal-close" class="modal-close" aria-label="Fechar modal">✕</button>
+    <div class="modal">
+      <button id="modal-close" class="modal-close" aria-label="Fechar">✕</button>
       <p class="modal-label">Presentear via PIX</p>
-      <h3 id="modal-title" class="modal-gift-name">—</h3>
+      <h2 id="modal-title" class="modal-gift-name">—</h2>
       <p id="modal-val" class="modal-value">—</p>
       <div class="qr-wrapper">
-        <div id="qr-loader" class="qr-loader"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
         <div id="qr-canvas"></div>
+        <div id="qr-loader" class="qr-loader hidden"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
       </div>
       <p class="modal-pix-key-label">Chave PIX</p>
       <p id="modal-key" class="modal-pix-key">—</p>
       <button id="btn-copy" class="btn-copy">Copiar chave PIX</button>
       <p class="modal-note">Após o depósito, envie o comprovante para a noiva via WhatsApp para que possamos registrar seu presente com muito carinho. 💛</p>
+    </div>
+  </div>
+
+  <!-- 🔐 Modal Admin -->
+  <div id="admin-overlay" class="modal-overlay" hidden>
+    <div class="modal">
+      <button id="admin-close" class="modal-close" aria-label="Fechar"></button>
+      <p class="modal-label">Acesso Restrito</p>
+      <h2 class="modal-gift-name" style="font-size:1.4rem;">Área da Noiva</h2>
+      
+      <div id="admin-login">
+        <input type="password" id="admin-pass" class="search-input" placeholder="Digite a senha de acesso" autocomplete="off" style="margin-bottom:1rem; text-align:center;">
+        <button id="admin-login-btn" class="btn-pix" style="width:100%; display:block;">Acessar Planilha</button>
+        <p id="admin-error" style="color:#d4a37a; font-size:0.7rem; margin-top:0.5rem; display:none;">Senha incorreta. Tente novamente.</p>
+      </div>
+
+      <div id="admin-panel" style="display:none;">
+        <p class="modal-note" style="margin-bottom:1rem;">Link direto para edição da lista:</p>
+        <div class="modal-pix-key" id="admin-sheet-link" style="word-break:break-all;"></div>
+        <button id="admin-copy-link" class="btn-copy">Copiar Link</button>
+        <p class="modal-note" style="margin-top:1rem;">Use este link para adicionar, remover ou marcar presentes como comprados.</p>
+      </div>
     </div>
   </div>
 
