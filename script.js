@@ -23,6 +23,19 @@ const STORAGE_RES   = 'alira_reservations_v1';
 const escapeHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const escapeAttr = s => String(s).replace(/"/g,'&quot;');
 const isSafeUrl  = u => { try { return /^https?:/.test(new URL(u, location.href).protocol); } catch { return false; } };
+
+// Converte qualquer formato de link do Google Drive para link direto de imagem
+function normalizeImgUrl(url) {
+  if (!url) return '';
+  // Formato /file/d/ID/view  →  uc?export=view&id=ID
+  const m1 = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+  // Formato /open?id=ID  →  uc?export=view&id=ID
+  const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+  // Já está no formato uc?export=... ou outro link externo — usa como está
+  return url;
+}
 const debounce   = (fn,ms=200) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
 const delay      = ms => new Promise(r => setTimeout(r, ms));
 
@@ -118,7 +131,7 @@ async function loadGifts(silent = false) {
             const n = parseFloat(s);
             return isNaN(n) || n < 0 ? 0 : n;
           })(),
-          foto:      (c[3]||'').trim(),
+          foto:      normalizeImgUrl((c[3]||'').trim()),
           status:    (c[4]||'').trim(),
           comprado:  (c[5]||'').trim().toLowerCase() === 'sim',
         })).filter(g => g.nome && g.nome.length <= 200);
@@ -183,7 +196,7 @@ function updateProgress() {
   const label = document.getElementById('progress-label');
   const ctr = document.getElementById('progress-counter');
   if (bar) bar.style.width = percent+'%';
-  if (label) label.textContent = `Faltam ${missing} presente${missing!==1?'s':''} • ${given} de ${total} já garantidos`;
+  if (label) label.textContent = `Faltam ${missing} presente${missing!==1?'s':''} ✦ ${given} de ${total} já garantidos`;
   if (ctr) ctr.textContent = percent+'%';
 }
 
@@ -260,13 +273,14 @@ function buildCardElement(gift) {
   const nameSafe = escapeHtml(gift.nome), catSafe = escapeHtml(gift.categoria);
   const safeImg = isSafeUrl(gift.foto) ? escapeAttr(gift.foto) : '';
   const imgTag = safeImg
-    ? `<img class="gift-image" src="${safeImg}" alt="Foto de ${nameSafe}" loading="lazy" decoding="async" width="400" height="300" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gift-image-placeholder" style="display:none" aria-hidden="true">${icon}</div>`
+    ? `<div class="gift-image-wrap"><img class="gift-image" src="${safeImg}" alt="Foto de ${nameSafe}" loading="lazy" decoding="async" width="400" height="533" onerror="this.parentElement.outerHTML='<div class=\\'gift-image-placeholder\\' aria-hidden=\\'true\\'>${icon}</div>'"/></div>`
     : `<div class="gift-image-placeholder" aria-hidden="true">${icon}</div>`;
-  let statusBadge = gift.comprado ? `<span class="gift-badge comprado">✓ Confirmado</span>` :
+  let statusBadge = gift.comprado ? `<span class="gift-badge comprado">✓ Confirmado</span><span class="gift-card-label" style="position:absolute;top:0.9rem;right:0.9rem;font-size:0.52rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--gold);background:rgba(184,150,90,0.12);padding:0.3rem 0.7rem;border:1px solid rgba(184,150,90,0.25);pointer-events:none;z-index:2;">Presenteado ✦</span>` :
                     reserved ? `<span class="gift-badge reserved">⏳ Reservado</span>` :
                                `<span class="gift-badge available">✦ Disponível</span>`;
   const valorFmt = gift.valor>0 ? gift.valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : 'A combinar';
   card.innerHTML = `
+    <div class="gift-card-line"></div>
     ${statusBadge}
     ${imgTag}
     <div class="gift-body">
@@ -496,6 +510,122 @@ function initCountdown() {
 }
 
 /* ══════════════════════════════════════════════════════
+🔐  ADMIN — ÁREA DA NOIVA
+   A senha nunca fica em texto puro aqui.
+   Apenas o hash SHA-256 é armazenado; não é possível
+   recuperar a senha original a partir dele.
+══════════════════════════════════════════════════════ */
+const ADMIN_HASH = 'e3fed8d80a04106f47cf7bef54c6d21bb983ea0fc18f577ac371ee911b8067b6';
+const SHEET_EDIT_URL = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/edit`;
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function openAdminModal() {
+  const adminOverlay = document.getElementById('admin-overlay');
+  const adminLogin   = document.getElementById('admin-login');
+  const adminPanel   = document.getElementById('admin-panel');
+  const adminPass    = document.getElementById('admin-pass');
+  const adminError   = document.getElementById('admin-error');
+  if (!adminOverlay) return;
+  // Reset state
+  adminLogin.style.display = '';
+  adminPanel.style.display = 'none';
+  if (adminPass) { adminPass.value = ''; }
+  if (adminError) adminError.style.display = 'none';
+  adminOverlay.removeAttribute('hidden');
+  requestAnimationFrame(() => adminOverlay.classList.add('open'));
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => adminPass?.focus(), 80);
+}
+
+function closeAdminModal() {
+  const adminOverlay = document.getElementById('admin-overlay');
+  if (!adminOverlay) return;
+  adminOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+  setTimeout(() => adminOverlay.setAttribute('hidden', ''), 400);
+}
+
+function setupAdminModal() {
+  const adminOverlay  = document.getElementById('admin-overlay');
+  const adminClose    = document.getElementById('admin-close');
+  const adminLoginBtn = document.getElementById('admin-login-btn');
+  const adminPass     = document.getElementById('admin-pass');
+  const adminError    = document.getElementById('admin-error');
+  const adminPanel    = document.getElementById('admin-panel');
+  const adminLogin    = document.getElementById('admin-login');
+  const sheetLinkEl   = document.getElementById('admin-sheet-link');
+  const copyLinkBtn   = document.getElementById('admin-copy-link');
+
+  if (!adminOverlay) return;
+
+  // Fechar ao clicar no backdrop
+  adminOverlay.addEventListener('click', e => { if (e.target === adminOverlay) closeAdminModal(); });
+
+  // Fechar com botão ✕
+  if (adminClose) adminClose.onclick = closeAdminModal;
+
+  // Fechar com Escape
+  adminOverlay.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAdminModal();
+    if (e.key === 'Enter' && document.activeElement === adminPass) adminLoginBtn?.click();
+  });
+
+  // Login
+  if (adminLoginBtn) {
+    adminLoginBtn.onclick = async () => {
+      const typed = adminPass?.value || '';
+      if (!typed) { if (adminError) { adminError.textContent = 'Digite a senha.'; adminError.style.display = 'block'; } return; }
+      adminLoginBtn.textContent = 'Verificando…';
+      adminLoginBtn.disabled = true;
+      const hash = await sha256(typed);
+      adminLoginBtn.textContent = 'Acessar Planilha';
+      adminLoginBtn.disabled = false;
+      if (hash === ADMIN_HASH) {
+        if (adminError) adminError.style.display = 'none';
+        if (adminLogin) adminLogin.style.display = 'none';
+        if (sheetLinkEl) sheetLinkEl.textContent = SHEET_EDIT_URL;
+        if (adminPanel) adminPanel.style.display = 'block';
+      } else {
+        if (adminError) { adminError.textContent = 'Senha incorreta. Tente novamente.'; adminError.style.display = 'block'; }
+        adminPass.value = '';
+        adminPass.focus();
+      }
+    };
+  }
+
+  // Copiar link
+  if (copyLinkBtn) {
+    copyLinkBtn.onclick = () => copyToClipboard(SHEET_EDIT_URL)
+      .then(() => { copyLinkBtn.textContent = '✓ Link copiado!'; showToast('Link da planilha copiado! 💛'); setTimeout(() => { copyLinkBtn.textContent = 'Copiar Link'; }, 2500); })
+      .catch(() => showToast('Copie o link manualmente.'));
+  }
+
+  // Injetar botão "Área da Noiva" no rodapé — discreto, não fica em destaque
+  const footer = document.querySelector('.footer');
+  if (footer && !document.getElementById('btn-admin-access')) {
+    const btn = document.createElement('button');
+    btn.id = 'btn-admin-access';
+    btn.textContent = '✦ Noiva';
+    btn.setAttribute('aria-label', 'Acesso restrito — Área da Noiva');
+    Object.assign(btn.style, {
+      display: 'block', margin: '1.5rem auto 0', background: 'none',
+      border: '1px solid rgba(184,150,90,0.18)', color: 'rgba(184,150,90,0.45)',
+      fontSize: '0.6rem', letterSpacing: '0.22em', textTransform: 'uppercase',
+      padding: '0.4rem 1.1rem', borderRadius: '2px', cursor: 'pointer',
+      fontFamily: 'var(--font-body, sans-serif)', transition: 'all 0.3s ease',
+    });
+    btn.addEventListener('mouseenter', () => { btn.style.color = 'var(--gold, #b8965a)'; btn.style.borderColor = 'rgba(184,150,90,0.5)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.color = 'rgba(184,150,90,0.45)'; btn.style.borderColor = 'rgba(184,150,90,0.18)'; });
+    btn.onclick = openAdminModal;
+    footer.appendChild(btn);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
 🚀  INICIALIZAÇÃO
 ══════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
@@ -508,6 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopy.onclick=()=>copyToClipboard(CONFIG.PIX_KEY).then(()=>{btnCopy.textContent='✓ Chave copiada!';btnCopy.classList.add('copied');showToast('Chave PIX copiada! Abra seu banco e cole 💛');setTimeout(()=>{btnCopy.textContent='Copiar chave PIX';btnCopy.classList.remove('copied');},2500);}).catch(()=>showToast('Copie manualmente.'));
   }
   setTimeout(spawnPhotoParticles,2400); initCountdown(); setupAutocomplete();
+  setupAdminModal();
   // Carga inicial garantida
   buildFilters(); updateProgress(); applyFiltersAndRender();
   loadGifts(false).then(ok=>{if(ok)startAutoRefresh();});
