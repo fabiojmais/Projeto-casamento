@@ -27,13 +27,14 @@ const isSafeUrl  = u => { try { return /^https?:/.test(new URL(u, location.href)
 // Converte qualquer formato de link do Google Drive para link direto de imagem
 function normalizeImgUrl(url) {
   if (!url) return '';
-  // Formato /file/d/ID/view  →  uc?export=view&id=ID
+  // Extrai o ID de qualquer formato de link do Google Drive
   const m1 = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
-  if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
-  // Formato /open?id=ID  →  uc?export=view&id=ID
+  if (m1) return `https://lh3.googleusercontent.com/d/${m1[1]}`;
   const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
-  // Já está no formato uc?export=... ou outro link externo — usa como está
+  if (m2) return `https://lh3.googleusercontent.com/d/${m2[1]}`;
+  const m3 = url.match(/drive\.google\.com\/uc\?.*[?&]id=([^&]+)/);
+  if (m3) return `https://lh3.googleusercontent.com/d/${m3[1]}`;
+  // Link externo — usa como está
   return url;
 }
 const debounce   = (fn,ms=200) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
